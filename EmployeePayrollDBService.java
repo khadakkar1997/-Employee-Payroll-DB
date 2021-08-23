@@ -24,30 +24,22 @@ public class EmployeePayrollDBService {
     /**
      * Purpose : To read employee payroll from database using JDBC.
      */
-    public List<EmployeePayrollData> readData() {
+    public List<EmployeePayrollData> readData() throws EmployeePayrollException {
         String sql = "SELECT * FROM employee_payroll";
-        List<EmployeePayrollData> employeePayrollList = new ArrayList<>();
-        try (Connection connection = this.getConnection()) {
-            Statement statement = connection.createStatement();
-            ResultSet result = statement.executeQuery(sql);
-            while (result.next()) {
-                int id = result.getInt("id");
-                String name = result.getString("name");
-                double salary = result.getDouble("salary");
-                LocalDate startDate = result.getDate("start").toLocalDate();
-                employeePayrollList.add(new EmployeePayrollData(id, name, salary, startDate));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return employeePayrollList;
+        return getEmployeePayrollDataUsingDB(sql);
     }
-
     /**
      * Purpose : Update the salary in the DB using Statement Interface
      */
     public int updateEmployeeData(String name, double salary) throws EmployeePayrollException {
         return this.updateEmployeeDataUsingStatement(name, salary);
+    }
+
+    /**
+     * Purpose : Update the salary in the DB using PreparedStatement Interface
+     */
+    public int updateEmployeeDataPreparedStatement(String name, double salary) throws EmployeePayrollException {
+        return this.updateEmployeeDataUsingPreparedStatement(name,salary);
     }
 
     /**
@@ -74,6 +66,22 @@ public class EmployeePayrollDBService {
             return statement.executeUpdate(sql);
         } catch (SQLException e) {
             throw new EmployeePayrollException("Please check the updateEmployeeDataUsingStatement() for detailed information!");
+        }
+    }
+
+    /**
+     * Purpose : Update the salary in the DB using PreparedStatement Interface
+     */
+    private int updateEmployeeDataUsingPreparedStatement(String name, double salary) throws EmployeePayrollException {
+        String sql = "UPDATE employee_payroll SET salary = ? WHERE name = ?";
+        try (Connection connection = this.getConnection()) {
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setDouble(1, salary);
+            statement.setString(2, name);
+
+            return statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new EmployeePayrollException("Please check the updateEmployeeDataUsingPreparedStatement() for detailed information!");
         }
     }
 
@@ -146,5 +154,14 @@ public class EmployeePayrollDBService {
             throw new EmployeePayrollException("Please check the getEmployeePayrollDataUsingDB() for detailed information!");
         }
         return employeePayrollList;
+    }
+
+    /**
+     * Purpose : Read the data for a certain date range from the database
+     */
+    public List<EmployeePayrollData> getEmployeeForDateRange(LocalDate startDate, LocalDate endDate) throws EmployeePayrollException {
+        String sql = String.format("SELECT * FROM employee_payroll WHERE START BETWEEN '%s' AND '%s';",
+                Date.valueOf(startDate), Date.valueOf(endDate));
+        return getEmployeePayrollDataUsingDB(sql);
     }
 }
